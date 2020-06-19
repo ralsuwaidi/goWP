@@ -10,12 +10,16 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mitchellh/go-wordwrap"
+	termbox "github.com/nsf/termbox-go"
 )
 
 var redditURL string = "https://www.reddit.com/r/WritingPrompts/.json?limit=20&"
 var topWeekURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=week"
 var topMonthURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
 var topYearURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
+var terminalWidth int
 
 // getResponse returns http GET request in bytes
 func getResponse(url, userAgent string) []byte {
@@ -139,6 +143,20 @@ func sortWP(sort string) Posts {
 	return posts
 }
 
+func printWrapped(text string) {
+	if terminalWidth == 0 {
+		if err := termbox.Init(); err != nil {
+			panic(err)
+		}
+		w, _ := termbox.Size()
+		termbox.Close()
+		terminalWidth = w
+	}
+
+	wrapped := wordwrap.WrapString(text, uint(terminalWidth))
+	fmt.Println(wrapped)
+}
+
 func main() {
 	promptInt := new(int)
 
@@ -149,7 +167,7 @@ func main() {
 
 	// print title and get user input
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("\n" + award(wp) + wp.title + "\n")
+	printWrapped("\n" + award(wp) + wp.title + "\n")
 	fmt.Print("> Read? [y/N]: ")
 	userInput, err := reader.ReadString('\n')
 	if err != nil {
@@ -176,7 +194,7 @@ func main() {
 		}
 
 		wp = makePrompt(posts, *promptInt)
-		fmt.Println("\n" + award(wp) + wp.title + "\n")
+		printWrapped("\n" + award(wp) + wp.title + "\n")
 		fmt.Print("> Read? [y/N]: ")
 		reader := bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
@@ -193,7 +211,7 @@ func main() {
 	fmt.Println("\n ")
 	saved := new(bool)
 	for i := 0; i < len(*splitStoryPt); i++ {
-		fmt.Println((*splitStoryPt)[i])
+		printWrapped((*splitStoryPt)[i])
 		reader = bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {
