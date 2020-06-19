@@ -1,5 +1,6 @@
 package main
 
+// Posts struct for reddit post
 type Posts struct {
 	Kind string `json:"kind"`
 	Data struct {
@@ -150,6 +151,7 @@ type Posts struct {
 	} `json:"data"`
 }
 
+// Comments struct of comment
 type Comments []struct {
 	Kind string `json:"kind"`
 	Data struct {
