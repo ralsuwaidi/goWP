@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+var redditURL string = "https://www.reddit.com/r/WritingPrompts/.json?limit=20&"
+var topWeekURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=week"
+var topMonthURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
+var topYearURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
+
 // getResponse returns http GET request in bytes
 func getResponse(url, userAgent string) []byte {
 	client := &http.Client{}
@@ -55,6 +60,7 @@ type writingPrompt struct {
 	title string
 	date  time.Time
 	story string
+	award bool
 }
 
 func makePrompt(posts Posts, number int) writingPrompt {
@@ -71,12 +77,19 @@ func makePrompt(posts Posts, number int) writingPrompt {
 	commentsByt := getResponse(url, "Golang_Spider_Bot/3.05")
 	comments := getComments(commentsByt)[1].Data.Children
 	story := comments[1].Data.Body
-
-	return writingPrompt{
+	wp := writingPrompt{
 		title: posts.Data.Children[number].Data.Title,
 		date:  time.Unix(int64(posts.Data.Children[number].Data.CreatedUtc), 0),
 		story: story,
 	}
+
+	if posts.Data.Children[number].Data.AllAwardings != nil {
+		if len(posts.Data.Children[number].Data.AllAwardings) > 0 {
+			wp.award = true
+		}
+	}
+
+	return wp
 }
 
 func savePrompt(wp writingPrompt) {
@@ -93,46 +106,103 @@ func savePrompt(wp writingPrompt) {
 	}
 }
 
+func award(wp writingPrompt) string {
+	if wp.award {
+		return "[*]"
+	}
+	return ""
+}
+
+func sortWP(sort string) Posts {
+	var posts Posts
+
+	switch sort {
+	case "week":
+		response := getResponse(topWeekURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to top week]")
+	case "month":
+		response := getResponse(topMonthURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to top month]")
+	case "year":
+		response := getResponse(topYearURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to top year]")
+	default:
+		response := getResponse(redditURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to hot]")
+	}
+	return posts
+}
+
 func main() {
 	promptInt := new(int)
 
 	// get wp
-	response := getResponse("https://www.reddit.com/r/WritingPrompts/.json?limit=20", "Golang_Spider_Bot/3.0")
+	response := getResponse(redditURL, "Golang_Spider_Bot/3.0")
 	posts := getPosts(response)
 	wp := makePrompt(posts, *promptInt)
-	wpPt := &wp
 
-	// get user input
+	// print title and get user input
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("\n" + wp.title + "\n")
+	fmt.Println("\n" + award(wp) + wp.title + "\n")
 	fmt.Print("Read? [y/N]: ")
-	char, _, _ := reader.ReadRune()
+	userInput, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
 
 	// loop titles until 'y' selected
-	for char != 'y' {
+	for strings.TrimSpace(userInput) != "y" {
 		*promptInt++
-		*wpPt = makePrompt(posts, *promptInt)
-		fmt.Println("\n" + wp.title + "\n")
+		// sort time if input
+		if strings.TrimSpace(userInput) == "week" {
+
+			posts = sortWP("week")
+			*promptInt = 0
+		} else if strings.TrimSpace(userInput) == "month" {
+			posts = sortWP("month")
+			*promptInt = 0
+		} else if strings.TrimSpace(userInput) == "year" {
+			posts = sortWP("year")
+			*promptInt = 0
+		} else if strings.TrimSpace(userInput) == "hot" {
+			posts = sortWP("week")
+			*promptInt = 0
+		}
+
+		wp = makePrompt(posts, *promptInt)
+		fmt.Println("\n" + award(wp) + wp.title + "\n")
 		fmt.Print("Read? [y/N]: ")
 		reader := bufio.NewReader(os.Stdin)
-		char, _, _ = reader.ReadRune()
+		userInput, err = reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+
 	}
 
 	// loop over story text
 	splitStory := strings.Split(wp.story, "\n\n")
+	splitStoryPt := &splitStory
+
 	fmt.Println("\n ")
 	saved := new(bool)
-	for i := 0; i < len(splitStory); i++ {
-		fmt.Println(splitStory[i])
+	for i := 0; i < len(*splitStoryPt); i++ {
+		fmt.Println((*splitStoryPt)[i])
 		reader = bufio.NewReader(os.Stdin)
-		char, _, _ = reader.ReadRune()
-		if char == 's' && *saved == false {
+		userInput, err = reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		if strings.TrimSpace(userInput) == "s" && *saved == false {
 			savePrompt(wp)
 			fmt.Println("[saved to 'saved_wp.txt']\n ")
 			*saved = true
-		} else if char == 's' && *saved == true {
+		} else if strings.TrimSpace(userInput) == "s" && *saved == true {
 			fmt.Println("[already saved']\n ")
-
 		}
 	}
 }
