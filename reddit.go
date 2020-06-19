@@ -106,6 +106,7 @@ func savePrompt(wp writingPrompt) {
 	}
 }
 
+// return sar if awarded
 func award(wp writingPrompt) string {
 	if wp.award {
 		return "[*]"
@@ -113,6 +114,7 @@ func award(wp writingPrompt) string {
 	return ""
 }
 
+// returns posts depending on sorting order
 func sortWP(sort string) Posts {
 	var posts Posts
 
@@ -148,7 +150,7 @@ func main() {
 	// print title and get user input
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("\n" + award(wp) + wp.title + "\n")
-	fmt.Print("Read? [y/N]: ")
+	fmt.Print("> Read? [y/N]: ")
 	userInput, err := reader.ReadString('\n')
 	if err != nil {
 		panic(err)
@@ -157,9 +159,9 @@ func main() {
 	// loop titles until 'y' selected
 	for strings.TrimSpace(userInput) != "y" {
 		*promptInt++
+
 		// sort time if input
 		if strings.TrimSpace(userInput) == "week" {
-
 			posts = sortWP("week")
 			*promptInt = 0
 		} else if strings.TrimSpace(userInput) == "month" {
@@ -175,7 +177,7 @@ func main() {
 
 		wp = makePrompt(posts, *promptInt)
 		fmt.Println("\n" + award(wp) + wp.title + "\n")
-		fmt.Print("Read? [y/N]: ")
+		fmt.Print("> Read? [y/N]: ")
 		reader := bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {
@@ -205,4 +207,15 @@ func main() {
 			fmt.Println("[already saved']\n ")
 		}
 	}
+
+	fmt.Print("> Done! Want to save? [y/N]: ")
+	userInput, err = reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	if strings.TrimSpace(userInput) == "y" {
+		savePrompt(wp)
+		fmt.Println("[saved to 'saved_wp.txt']\n ")
+	}
+
 }
