@@ -28,8 +28,8 @@ var (
 	wp            writingPrompt
 )
 
-// getResponse returns http GET request in bytes
-func getResponse(url, userAgent string) []byte {
+// GetResponse returns http GET request in bytes
+func GetResponse(url, userAgent string) []byte {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -87,14 +87,14 @@ func makePrompt(posts Posts, number int) writingPrompt {
 	// get url
 	url := posts.Data.Children[number].Data.URL + ".json"
 	// comments from url
-	commentsByt = getResponse(url, "Golang_Spider_Bot/3.05")
+	commentsByt = GetResponse(url, "Golang_Spider_Bot/3.05")
 
 	// check if comments exist
 	// skip if there is no comment
 	for len(getComments(commentsByt)[1].Data.Children) < 2 {
 		number++
 		url := posts.Data.Children[number].Data.URL + ".json"
-		commentsByt = getResponse(url, "Golang_Spider_Bot/3.05")
+		commentsByt = GetResponse(url, "Golang_Spider_Bot/3.05")
 		*promptInt++
 	}
 
@@ -145,19 +145,19 @@ func sortWP(sort string) Posts {
 
 	switch sort {
 	case "week":
-		response := getResponse(topWeekURL, "Golang_Spider_Bot/3.0")
+		response := GetResponse(topWeekURL, "Golang_Spider_Bot/3.0")
 		posts = getPosts(response)
 		fmt.Println("[changed to top week]")
 	case "month":
-		response := getResponse(topMonthURL, "Golang_Spider_Bot/3.0")
+		response := GetResponse(topMonthURL, "Golang_Spider_Bot/3.0")
 		posts = getPosts(response)
 		fmt.Println("[changed to top month]")
 	case "year":
-		response := getResponse(topYearURL, "Golang_Spider_Bot/3.0")
+		response := GetResponse(topYearURL, "Golang_Spider_Bot/3.0")
 		posts = getPosts(response)
 		fmt.Println("[changed to top year]")
 	default:
-		response := getResponse(redditURL, "Golang_Spider_Bot/3.0")
+		response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
 		posts = getPosts(response)
 		fmt.Println("[changed to hot]")
 	}
@@ -180,8 +180,9 @@ func printWrapped(text string) {
 
 func main() {
 
+	var definition Definition
 	// get posts
-	response := getResponse(redditURL, "Golang_Spider_Bot/3.0")
+	response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
 	posts = getPosts(response)
 
 	// print title and get user input
@@ -239,7 +240,16 @@ func main() {
 			*saved = true
 		} else if strings.TrimSpace(userInput) == "s" && *saved == true {
 			fmt.Println("[already saved']\n ")
+		} else if strings.Contains(strings.TrimSpace(userInput), "def") {
+			// split
+			word := strings.Split(strings.TrimSpace(userInput), " ")
+			body := GetResponse(fmt.Sprintf(DictionaryAPI, word[1]), "This is a test")
+			json.Unmarshal(body, &definition)
+			fmt.Println()
+			fmt.Println(definition[0].Shortdef)
+			userInput, _ = reader.ReadString('\n')
 		}
+
 	}
 
 	fmt.Print("> Done! Want to save? [y/N]: ")
