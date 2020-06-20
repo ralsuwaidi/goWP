@@ -15,12 +15,18 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
-var redditURL string = "https://www.reddit.com/r/WritingPrompts/.json?limit=20&"
-var topWeekURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=week"
-var topMonthURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
-var topYearURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
-var terminalWidth int
-var promptInt *int = new(int)
+var (
+	redditURL     string = "https://www.reddit.com/r/WritingPrompts/.json?limit=20&"
+	topWeekURL    string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=week"
+	topMonthURL   string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
+	topYearURL    string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
+	terminalWidth int
+	promptInt     *int = new(int)
+	posts         Posts
+	userInput     string
+	err           error
+	wp            writingPrompt
+)
 
 // getResponse returns http GET request in bytes
 func getResponse(url, userAgent string) []byte {
@@ -84,13 +90,15 @@ func makePrompt(posts Posts, number int) writingPrompt {
 	commentsByt = getResponse(url, "Golang_Spider_Bot/3.05")
 
 	// check if comments exist
+	// skip if there is no comment
 	for len(getComments(commentsByt)[1].Data.Children) < 2 {
 		number++
 		url := posts.Data.Children[number].Data.URL + ".json"
 		commentsByt = getResponse(url, "Golang_Spider_Bot/3.05")
 		*promptInt++
 	}
-	// get comments
+
+	// get comments and make a wp struct
 	comments := getComments(commentsByt)[1].Data.Children
 	story := comments[1].Data.Body
 	wp := writingPrompt{
@@ -99,6 +107,7 @@ func makePrompt(posts Posts, number int) writingPrompt {
 		story: story,
 	}
 
+	// add award
 	if posts.Data.Children[number].Data.AllAwardings != nil {
 		if len(posts.Data.Children[number].Data.AllAwardings) > 0 {
 			wp.award = true
@@ -122,7 +131,7 @@ func savePrompt(wp writingPrompt) {
 	}
 }
 
-// return sar if awarded
+// return star if awarded
 func award(wp writingPrompt) string {
 	if wp.award {
 		return "[*]"
@@ -171,22 +180,27 @@ func printWrapped(text string) {
 
 func main() {
 
-	// get wp
+	// get posts
 	response := getResponse(redditURL, "Golang_Spider_Bot/3.0")
-	posts := getPosts(response)
-	wp := makePrompt(posts, *promptInt)
+	posts = getPosts(response)
 
 	// print title and get user input
 	reader := bufio.NewReader(os.Stdin)
-	printWrapped("\n" + award(wp) + wp.title + "\n")
-	fmt.Print("> Read? [y/N]: ")
-	userInput, err := reader.ReadString('\n')
-	if err != nil {
-		panic(err)
-	}
 
-	// loop titles until 'y' selected
+	// loop titles until story is selected
 	for strings.TrimSpace(userInput) != "y" {
+		wp = makePrompt(posts, *promptInt)
+		printWrapped("\n" + award(wp) + wp.title + "\n")
+		fmt.Print("> Read? [y/N]: ")
+		reader := bufio.NewReader(os.Stdin)
+		userInput, err = reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		if strings.TrimSpace(userInput) == "exit" {
+			os.Exit(0)
+		}
+
 		*promptInt++
 
 		// sort time if input
@@ -202,15 +216,6 @@ func main() {
 		} else if strings.TrimSpace(userInput) == "hot" {
 			posts = sortWP("hot")
 			*promptInt = 0
-		}
-
-		wp = makePrompt(posts, *promptInt)
-		printWrapped("\n" + award(wp) + wp.title + "\n")
-		fmt.Print("> Read? [y/N]: ")
-		reader := bufio.NewReader(os.Stdin)
-		userInput, err = reader.ReadString('\n')
-		if err != nil {
-			panic(err)
 		}
 
 	}
