@@ -20,6 +20,7 @@ var topWeekURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=wee
 var topMonthURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
 var topYearURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
 var terminalWidth int
+var promptInt *int = new(int)
 
 // getResponse returns http GET request in bytes
 func getResponse(url, userAgent string) []byte {
@@ -68,6 +69,8 @@ type writingPrompt struct {
 }
 
 func makePrompt(posts Posts, number int) writingPrompt {
+	var commentsByt []byte
+	// find stickied
 	stickied := 0
 	for posts.Data.Children[0+stickied].Data.Stickied {
 		stickied++
@@ -78,7 +81,16 @@ func makePrompt(posts Posts, number int) writingPrompt {
 	// get url
 	url := posts.Data.Children[number].Data.URL + ".json"
 	// comments from url
-	commentsByt := getResponse(url, "Golang_Spider_Bot/3.05")
+	commentsByt = getResponse(url, "Golang_Spider_Bot/3.05")
+
+	// check if comments exist
+	for len(getComments(commentsByt)[1].Data.Children) < 2 {
+		number++
+		url := posts.Data.Children[number].Data.URL + ".json"
+		commentsByt = getResponse(url, "Golang_Spider_Bot/3.05")
+		*promptInt++
+	}
+	// get comments
 	comments := getComments(commentsByt)[1].Data.Children
 	story := comments[1].Data.Body
 	wp := writingPrompt{
@@ -158,7 +170,6 @@ func printWrapped(text string) {
 }
 
 func main() {
-	promptInt := new(int)
 
 	// get wp
 	response := getResponse(redditURL, "Golang_Spider_Bot/3.0")
@@ -189,7 +200,7 @@ func main() {
 			posts = sortWP("year")
 			*promptInt = 0
 		} else if strings.TrimSpace(userInput) == "hot" {
-			posts = sortWP("week")
+			posts = sortWP("hot")
 			*promptInt = 0
 		}
 
