@@ -206,6 +206,8 @@ func main() {
 			fmt.Println()
 			fmt.Println(definition[0].Shortdef)
 			userInput, _ = reader.ReadString('\n')
+		} else if strings.TrimSpace(userInput) == "exit" {
+			os.Exit(0)
 		}
 
 	}
