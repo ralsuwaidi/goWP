@@ -10,9 +10,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/mitchellh/go-wordwrap"
-	termbox "github.com/nsf/termbox-go"
 )
 
 var (
@@ -139,45 +136,6 @@ func award(wp writingPrompt) string {
 	return ""
 }
 
-// returns posts depending on sorting order
-func sortWP(sort string) Posts {
-	var posts Posts
-
-	switch sort {
-	case "week":
-		response := GetResponse(topWeekURL, "Golang_Spider_Bot/3.0")
-		posts = getPosts(response)
-		fmt.Println("[changed to top week]")
-	case "month":
-		response := GetResponse(topMonthURL, "Golang_Spider_Bot/3.0")
-		posts = getPosts(response)
-		fmt.Println("[changed to top month]")
-	case "year":
-		response := GetResponse(topYearURL, "Golang_Spider_Bot/3.0")
-		posts = getPosts(response)
-		fmt.Println("[changed to top year]")
-	default:
-		response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
-		posts = getPosts(response)
-		fmt.Println("[changed to hot]")
-	}
-	return posts
-}
-
-func printWrapped(text string) {
-	if terminalWidth == 0 {
-		if err := termbox.Init(); err != nil {
-			panic(err)
-		}
-		w, _ := termbox.Size()
-		termbox.Close()
-		terminalWidth = w
-	}
-
-	wrapped := wordwrap.WrapString(text, uint(terminalWidth))
-	fmt.Println(wrapped)
-}
-
 func main() {
 
 	var definition Definition
@@ -191,7 +149,7 @@ func main() {
 	// loop titles until story is selected
 	for strings.TrimSpace(userInput) != "y" {
 		wp = makePrompt(posts, *promptInt)
-		printWrapped("\n" + award(wp) + wp.title + "\n")
+		PrintWrapped("\n" + award(wp) + wp.title + "\n")
 		fmt.Print("> Read? [y/N]: ")
 		reader := bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
@@ -206,16 +164,16 @@ func main() {
 
 		// sort time if input
 		if strings.TrimSpace(userInput) == "week" {
-			posts = sortWP("week")
+			posts = SortWP("week")
 			*promptInt = 0
 		} else if strings.TrimSpace(userInput) == "month" {
-			posts = sortWP("month")
+			posts = SortWP("month")
 			*promptInt = 0
 		} else if strings.TrimSpace(userInput) == "year" {
-			posts = sortWP("year")
+			posts = SortWP("year")
 			*promptInt = 0
 		} else if strings.TrimSpace(userInput) == "hot" {
-			posts = sortWP("hot")
+			posts = SortWP("hot")
 			*promptInt = 0
 		}
 
@@ -228,7 +186,7 @@ func main() {
 	fmt.Println("\n ")
 	saved := new(bool)
 	for i := 0; i < len(*splitStoryPt); i++ {
-		printWrapped((*splitStoryPt)[i])
+		PrintWrapped((*splitStoryPt)[i])
 		reader = bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {

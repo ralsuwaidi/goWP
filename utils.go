@@ -1,5 +1,12 @@
 package main
 
+import (
+	"fmt"
+
+	"github.com/mitchellh/go-wordwrap"
+	termbox "github.com/nsf/termbox-go"
+)
+
 var (
 	// ThesaurusURL returns json
 	ThesaurusURL string = "https://words.bighugelabs.com/api/2/b6345742666ef3aef39d51c44710b272/%s/json"
@@ -8,61 +15,42 @@ var (
 	DictionaryAPI string = "https://www.dictionaryapi.com/api/v3/references/collegiate/json/%s?key=e1513aa1-d1c4-46a7-ad82-c6bd7c2eddd2"
 )
 
-// Definition struct of json response
-type Definition []struct {
-	Meta struct {
-		ID        string   `json:"id"`
-		UUID      string   `json:"uuid"`
-		Sort      string   `json:"sort"`
-		Src       string   `json:"src"`
-		Section   string   `json:"section"`
-		Stems     []string `json:"stems"`
-		Offensive bool     `json:"offensive"`
-	} `json:"meta"`
-	Hwi struct {
-		Hw  string `json:"hw"`
-		Prs []struct {
-			Mw    string `json:"mw"`
-			Sound struct {
-				Audio string `json:"audio"`
-				Ref   string `json:"ref"`
-				Stat  string `json:"stat"`
-			} `json:"sound,omitempty"`
-		} `json:"prs"`
-	} `json:"hwi"`
-	Fl  string `json:"fl"`
-	Ins []struct {
-		Il  string `json:"il"`
-		Ifc string `json:"ifc"`
-		If  string `json:"if"`
-	} `json:"ins"`
-	Def []struct {
-		Sseq [][][]interface{} `json:"sseq"`
-	} `json:"def"`
-	Date     string   `json:"date"`
-	Shortdef []string `json:"shortdef"`
+// PrintWrapped prints wrapped text
+func PrintWrapped(text string) {
+	if terminalWidth == 0 {
+		if err := termbox.Init(); err != nil {
+			panic(err)
+		}
+		w, _ := termbox.Size()
+		termbox.Close()
+		terminalWidth = w
+	}
+
+	wrapped := wordwrap.WrapString(text, uint(terminalWidth))
+	fmt.Println(wrapped)
 }
 
-// func getWord(word string) []byte {
-// 	client := &http.Client{}
+// SortWP changes sort order
+func SortWP(sort string) Posts {
+	var posts Posts
 
-// 	req, err := http.NewRequest("GET", fmt.Sprintf(oxfordAPI, word), nil)
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-// 	req.Header.Set("app_id", "32e73c16")
-// 	req.Header.Set("app_key", "a9a3122a4f8f582f9d091f8dde2d8f5f")
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-
-// 	defer resp.Body.Close()
-// 	body, err := ioutil.ReadAll(resp.Body)
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-// 	fmt.Println(req.Header)
-
-// 	return body
-// }
+	switch sort {
+	case "week":
+		response := GetResponse(topWeekURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to top week]")
+	case "month":
+		response := GetResponse(topMonthURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to top month]")
+	case "year":
+		response := GetResponse(topYearURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to top year]")
+	default:
+		response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
+		posts = getPosts(response)
+		fmt.Println("[changed to hot]")
+	}
+	return posts
+}
