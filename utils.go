@@ -30,7 +30,7 @@ func PrintWrapped(text string) {
 	fmt.Println(wrapped)
 }
 
-// SortWP changes sort order
+// SortWP changes sort order and refreshes the title list
 func SortWP(sort string) Posts {
 	var posts Posts
 

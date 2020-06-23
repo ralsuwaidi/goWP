@@ -8,21 +8,26 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
 
+const (
+	redditURL   string = "https://www.reddit.com/r/WritingPrompts/.json?limit=20&"
+	topWeekURL  string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=week"
+	topMonthURL string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
+	topYearURL  string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
+)
+
 var (
-	redditURL     string = "https://www.reddit.com/r/WritingPrompts/.json?limit=20&"
-	topWeekURL    string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=week"
-	topMonthURL   string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=month"
-	topYearURL    string = "https://www.reddit.com/r/WritingPrompts/top/.json?t=year"
 	terminalWidth int
 	promptInt     *int = new(int)
 	posts         Posts
 	userInput     string
 	err           error
 	wp            writingPrompt
+	saved         bool
 )
 
 // GetResponse returns http GET request in bytes
@@ -136,17 +141,37 @@ func award(wp writingPrompt) string {
 	return ""
 }
 
-func main() {
-
+func loopStory(splitStoryPt *[]string, saved bool) {
 	var definition Definition
-	// get posts
-	response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
-	posts = getPosts(response)
+	for i := 0; i < len(*splitStoryPt); i++ {
+		PrintWrapped((*splitStoryPt)[i])
+		reader := bufio.NewReader(os.Stdin)
+		userInput, err = reader.ReadString('\n')
+		if err != nil {
+			panic(err)
+		}
+		if strings.TrimSpace(userInput) == "s" && saved == false {
+			savePrompt(wp)
+			fmt.Println("[saved to 'saved_wp.txt']\n ")
+			saved = true
+		} else if strings.TrimSpace(userInput) == "s" && saved == true {
+			fmt.Println("[already saved']\n ")
+		} else if strings.Contains(strings.TrimSpace(userInput), "def") {
+			// split
+			word := strings.Split(strings.TrimSpace(userInput), " ")
+			body := GetResponse(fmt.Sprintf(DictionaryAPI, word[1]), "This is a test")
+			json.Unmarshal(body, &definition)
+			fmt.Println()
+			fmt.Println(definition[0].Shortdef)
+			userInput, _ = reader.ReadString('\n')
+		} else if strings.TrimSpace(userInput) == "exit" {
+			os.Exit(0)
+		}
 
-	// print title and get user input
-	reader := bufio.NewReader(os.Stdin)
+	}
+}
 
-	// loop titles until story is selected
+func loopTitle() {
 	for strings.TrimSpace(userInput) != "y" {
 		wp = makePrompt(posts, *promptInt)
 		PrintWrapped("\n" + award(wp) + wp.title + "\n")
@@ -178,40 +203,72 @@ func main() {
 		}
 
 	}
+}
 
-	// loop over story text
+// findPartTwo returns the url if found in string, else returns empty string
+func findPartTwo(s string) string {
+	url := ""
+	regexExpression := `https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)`
+	r, _ := regexp.Compile(regexExpression)
+
+	match, _ := regexp.MatchString(regexExpression, s)
+	if match {
+		stringList := r.FindAllString(s, -1)
+		for i := 0; i < len(stringList); i++ {
+			if strings.Contains(stringList[i], "/comments/") {
+				if strings.Contains(stringList[i], ")") {
+					url = strings.Replace(stringList[i], ")", "", -1)
+					return url
+				}
+				url = stringList[i]
+
+			}
+		}
+	}
+
+	return url
+}
+
+func main() {
+
+	// get posts
+	response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
+	posts = getPosts(response)
+
+	// print title and get user input
+	reader := bufio.NewReader(os.Stdin)
+
+	// loop titles until story is selected
+	loopTitle()
+
+	// split story text
 	splitStory := strings.Split(wp.story, "\n\n")
 	splitStoryPt := &splitStory
 
+	// start the story
+	// then loop over it
 	fmt.Println("\n ")
-	saved := new(bool)
-	for i := 0; i < len(*splitStoryPt); i++ {
-		PrintWrapped((*splitStoryPt)[i])
+	loopStory(splitStoryPt, saved)
+	url := findPartTwo(wp.story)
+	if url != "" {
+		fmt.Println("There is a second part, want to read that? [y/N]")
+		fmt.Println()
 		reader = bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {
 			panic(err)
 		}
-		if strings.TrimSpace(userInput) == "s" && *saved == false {
-			savePrompt(wp)
-			fmt.Println("[saved to 'saved_wp.txt']\n ")
-			*saved = true
-		} else if strings.TrimSpace(userInput) == "s" && *saved == true {
-			fmt.Println("[already saved']\n ")
-		} else if strings.Contains(strings.TrimSpace(userInput), "def") {
-			// split
-			word := strings.Split(strings.TrimSpace(userInput), " ")
-			body := GetResponse(fmt.Sprintf(DictionaryAPI, word[1]), "This is a test")
-			json.Unmarshal(body, &definition)
-			fmt.Println()
-			fmt.Println(definition[0].Shortdef)
-			userInput, _ = reader.ReadString('\n')
-		} else if strings.TrimSpace(userInput) == "exit" {
-			os.Exit(0)
+		if strings.TrimSpace(userInput) == "y" {
+			commentsByt := GetResponse(url+".json", "Golang_Spider_Bot/3.05")
+			story := getComments(commentsByt)[0].Data.Children[0].Data.Selftext
+			splitStory := strings.Split(story, "\n\n")
+			splitStoryPt := &splitStory
+			loopStory(splitStoryPt, saved)
 		}
-
+		fmt.Println(url)
 	}
 
+	// story finished
 	fmt.Print("> Done! Want to save? [y/N]: ")
 	userInput, err = reader.ReadString('\n')
 	if err != nil {
