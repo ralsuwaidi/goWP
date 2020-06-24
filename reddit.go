@@ -150,12 +150,15 @@ func loopStory(splitStoryPt *[]string, saved bool) {
 		if err != nil {
 			panic(err)
 		}
+
 		if strings.TrimSpace(userInput) == "s" && saved == false {
 			savePrompt(wp)
 			fmt.Println("[saved to 'saved_wp.txt']\n ")
 			saved = true
+
 		} else if strings.TrimSpace(userInput) == "s" && saved == true {
 			fmt.Println("[already saved']\n ")
+
 		} else if strings.Contains(strings.TrimSpace(userInput), "def") {
 			// split
 			word := strings.Split(strings.TrimSpace(userInput), " ")

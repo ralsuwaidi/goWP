@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/mitchellh/go-wordwrap"
+	markdown "github.com/MichaelMure/go-term-markdown"
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -26,8 +26,9 @@ func PrintWrapped(text string) {
 		terminalWidth = w
 	}
 
-	wrapped := wordwrap.WrapString(text, uint(terminalWidth))
-	fmt.Println(wrapped)
+	//wrapped := wordwrap.WrapString(text, uint(terminalWidth))
+	result := markdown.Render(text, terminalWidth, 0)
+	fmt.Println(string(result))
 }
 
 // SortWP changes sort order and refreshes the title list
