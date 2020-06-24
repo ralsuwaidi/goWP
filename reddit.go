@@ -177,7 +177,8 @@ func loopStory(splitStoryPt *[]string, saved bool) {
 func loopTitle() {
 	for strings.TrimSpace(userInput) != "y" {
 		wp = makePrompt(posts, *promptInt)
-		PrintWrapped("\n" + award(wp) + wp.title + "\n")
+		fmt.Print("\n")
+		PrintWrapped(award(wp) + wp.title + "\n")
 		fmt.Print("> Read? [y/N]: ")
 		reader := bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
