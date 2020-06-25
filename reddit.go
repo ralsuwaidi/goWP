@@ -141,10 +141,10 @@ func award(wp writingPrompt) string {
 	return ""
 }
 
-func loopStory(splitStoryPt *[]string, saved bool) {
+func loopStory(splitStory []string) {
 	var definition Definition
-	for i := 0; i < len(*splitStoryPt); i++ {
-		PrintWrapped((*splitStoryPt)[i])
+	for i := 0; i < len(splitStory); i++ {
+		PrintWrapped((splitStory)[i])
 		reader := bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {
@@ -230,12 +230,13 @@ func findPartTwo(s string) string {
 		}
 	}
 
+	fmt.Println("Found url ", url)
 	return url
 }
 
 func main() {
 
-	// get posts
+	// get posts from hot
 	response := GetResponse(redditURL, "Golang_Spider_Bot/3.0")
 	posts = getPosts(response)
 
@@ -247,12 +248,11 @@ func main() {
 
 	// split story text
 	splitStory := strings.Split(wp.story, "\n\n")
-	splitStoryPt := &splitStory
 
 	// start the story
 	// then loop over it
 	fmt.Println("\n ")
-	loopStory(splitStoryPt, saved)
+	loopStory(splitStory)
 	url := findPartTwo(wp.story)
 	if url != "" {
 		fmt.Println("There is a second part, want to read that? [y/N]")
@@ -266,8 +266,7 @@ func main() {
 			commentsByt := GetResponse(url+".json", "Golang_Spider_Bot/3.05")
 			story := getComments(commentsByt)[0].Data.Children[0].Data.Selftext
 			splitStory := strings.Split(story, "\n\n")
-			splitStoryPt := &splitStory
-			loopStory(splitStoryPt, saved)
+			loopStory(splitStory)
 		}
 		fmt.Println(url)
 	}
