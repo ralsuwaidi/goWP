@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -235,7 +236,7 @@ func findPartTwo(s string) bool {
 		}
 	}
 
-	fmt.Println("Found url ", urlList)
+	// fmt.Println("Found url ", urlList)
 	if len(urlList) > 0 {
 		return true
 	}
@@ -260,7 +261,7 @@ func main() {
 	// start the story
 	// then loop over it
 	loopStory(splitStory)
-	// url := findPartTwo(wp.story)
+
 	for findPartTwo(wp.story) {
 		var url string
 		fmt.Println("There is a second part, want to read that? [y/N]")
@@ -271,7 +272,28 @@ func main() {
 		}
 		if strings.TrimSpace(userInput) == "y" {
 			if len(urlList) == 1 {
+
 				url = strings.Replace(urlList[0], "?", ".json?", 1)
+				commentsByt := GetResponse(url, "Golang_Spider_Bot/3.05")
+				wp.story = getComments(commentsByt)[0].Data.Children[0].Data.Selftext
+				splitStory := strings.Split(wp.story, "\n\n")
+				loopStory(splitStory)
+			} else if len(urlList) > 1 {
+				fmt.Println("There is more than one link, choose one.")
+				for i := 0; i < len(urlList); i++ {
+					fmt.Println(string(i)+".) ", urlList[i])
+				}
+				reader = bufio.NewReader(os.Stdin)
+				input, err := reader.ReadString('\n')
+				if err != nil {
+					panic(err)
+				}
+				input = strings.TrimSpace(input)
+				inputInt, err := strconv.ParseInt(input, 10, 0)
+				if err != nil {
+					log.Fatal(err)
+				}
+				url = strings.Replace(urlList[inputInt], "?", ".json?", 1)
 				commentsByt := GetResponse(url, "Golang_Spider_Bot/3.05")
 				wp.story = getComments(commentsByt)[0].Data.Children[0].Data.Selftext
 				splitStory := strings.Split(wp.story, "\n\n")
