@@ -28,6 +28,8 @@ var (
 	err           error
 	wp            writingPrompt
 	saved         bool
+	nextURL       string
+	urlList       []string
 )
 
 // GetResponse returns http GET request in bytes
@@ -143,6 +145,8 @@ func award(wp writingPrompt) string {
 
 func loopStory(splitStory []string) {
 	var definition Definition
+
+	fmt.Println("\n ")
 	for i := 0; i < len(splitStory); i++ {
 		PrintWrapped((splitStory)[i])
 		reader := bufio.NewReader(os.Stdin)
@@ -210,8 +214,9 @@ func loopTitle() {
 }
 
 // findPartTwo returns the url if found in string, else returns empty string
-func findPartTwo(s string) string {
-	url := ""
+func findPartTwo(s string) bool {
+	var url string
+
 	regexExpression := `https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)`
 	r, _ := regexp.Compile(regexExpression)
 
@@ -222,16 +227,19 @@ func findPartTwo(s string) string {
 			if strings.Contains(stringList[i], "/comments/") {
 				if strings.Contains(stringList[i], ")") {
 					url = strings.Replace(stringList[i], ")", "", -1)
-					return url
+					urlList = append(urlList, url)
 				}
-				url = stringList[i]
+				urlList = append(urlList, stringList[i])
 
 			}
 		}
 	}
 
-	fmt.Println("Found url ", url)
-	return url
+	fmt.Println("Found url ", urlList)
+	if len(urlList) > 0 {
+		return true
+	}
+	return false
 }
 
 func main() {
@@ -251,24 +259,27 @@ func main() {
 
 	// start the story
 	// then loop over it
-	fmt.Println("\n ")
 	loopStory(splitStory)
-	url := findPartTwo(wp.story)
-	if url != "" {
+	// url := findPartTwo(wp.story)
+	for findPartTwo(wp.story) {
+		var url string
 		fmt.Println("There is a second part, want to read that? [y/N]")
-		fmt.Println()
 		reader = bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {
 			panic(err)
 		}
 		if strings.TrimSpace(userInput) == "y" {
-			commentsByt := GetResponse(url+".json", "Golang_Spider_Bot/3.05")
-			story := getComments(commentsByt)[0].Data.Children[0].Data.Selftext
-			splitStory := strings.Split(story, "\n\n")
-			loopStory(splitStory)
+			if len(urlList) == 1 {
+				url = strings.Replace(urlList[0], "?", ".json?", 1)
+				commentsByt := GetResponse(url, "Golang_Spider_Bot/3.05")
+				wp.story = getComments(commentsByt)[0].Data.Children[0].Data.Selftext
+				splitStory := strings.Split(wp.story, "\n\n")
+				loopStory(splitStory)
+			}
+		} else {
+			break
 		}
-		fmt.Println(url)
 	}
 
 	// story finished
