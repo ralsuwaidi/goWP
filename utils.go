@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	markdown "github.com/MichaelMure/go-term-markdown"
 	termbox "github.com/nsf/termbox-go"
@@ -54,4 +56,54 @@ func SortWP(sort string) Posts {
 		fmt.Println("[changed to hot]")
 	}
 	return posts
+}
+
+func remove(s []string, i int) []string {
+	s[i] = s[len(s)-1]
+	// We do not need to put s[i] at the end, as it will be discarded anyway
+	return s[:len(s)-1]
+}
+
+func findLinks(t string) map[string]string {
+	m := make(map[string]string)
+	var stringList []string
+
+	MDRegex := `(?:__|[*#])|\[(.*?)\]\(.*?\)`
+	rm, _ := regexp.Compile(MDRegex)
+
+	match1, _ := regexp.MatchString(MDRegex, t)
+	if match1 {
+		MDList := rm.FindAllString(t, -1)
+		for i := 0; i < len(MDList); i++ {
+			splitMD := strings.Split(MDList[i], "](")
+			m[splitMD[0][1:]] = splitMD[1][:len(splitMD[1])-1]
+
+		}
+	}
+
+	regexExpression := `https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/=]*)`
+	r, _ := regexp.Compile(regexExpression)
+
+	match, _ := regexp.MatchString(regexExpression, t)
+	if match {
+		stringList = r.FindAllString(t, -1)
+	}
+
+	for _, element := range m {
+		if len(stringList) > 0 {
+			for i := 0; i < len(stringList); i++ {
+				if strings.Contains(element, stringList[i]) {
+
+					stringList = remove(stringList, i)
+				}
+			}
+		}
+	}
+
+	for i := 0; i < len(stringList); i++ {
+
+		m[stringList[i]] = stringList[i]
+	}
+
+	return m
 }

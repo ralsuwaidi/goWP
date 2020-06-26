@@ -264,25 +264,41 @@ func main() {
 
 	for findPartTwo(wp.story) {
 		var url string
-		fmt.Println("There is a second part, want to read that? [y/N]")
+		fmt.Print("There is a second part, want to read that? [y/N]: ")
 		reader = bufio.NewReader(os.Stdin)
 		userInput, err = reader.ReadString('\n')
 		if err != nil {
 			panic(err)
 		}
 		if strings.TrimSpace(userInput) == "y" {
-			if len(urlList) == 1 {
 
+			// if there is only one link, automatically use that
+			if len(urlList) == 1 {
 				url = strings.Replace(urlList[0], "?", ".json?", 1)
 				commentsByt := GetResponse(url, "Golang_Spider_Bot/3.05")
 				wp.story = getComments(commentsByt)[0].Data.Children[0].Data.Selftext
 				splitStory := strings.Split(wp.story, "\n\n")
 				loopStory(splitStory)
+
+				// if there is more than one link
+				// show all the links and let the user choose
 			} else if len(urlList) > 1 {
+				fmt.Println()
 				fmt.Println("There is more than one link, choose one.")
-				for i := 0; i < len(urlList); i++ {
-					fmt.Println(string(i)+".) ", urlList[i])
+				m := findLinks(wp.story)
+				var aList []string
+				var bList []string
+
+				for key, val := range m {
+					bList = append(bList, val)
+					aList = append(aList, key)
 				}
+
+				for i := 0; i < len(aList); i++ {
+					fmt.Println(strconv.Itoa(i+1)+".) ", aList[i])
+				}
+
+				fmt.Print("> ")
 				reader = bufio.NewReader(os.Stdin)
 				input, err := reader.ReadString('\n')
 				if err != nil {
@@ -293,7 +309,10 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
-				url = strings.Replace(urlList[inputInt], "?", ".json?", 1)
+
+				// add '.json' to the url
+				// replace wp.story with updated story
+				url = strings.Replace(bList[inputInt-1], "?", ".json?", 1)
 				commentsByt := GetResponse(url, "Golang_Spider_Bot/3.05")
 				wp.story = getComments(commentsByt)[0].Data.Children[0].Data.Selftext
 				splitStory := strings.Split(wp.story, "\n\n")
