@@ -75,6 +75,9 @@ func findLinks(t string) map[string]string {
 	if match1 {
 		MDList := rm.FindAllString(t, -1)
 		for i := 0; i < len(MDList); i++ {
+			if MDList[i] == "*" {
+				continue
+			}
 			splitMD := strings.Split(MDList[i], "](")
 			m[splitMD[0][1:]] = splitMD[1][:len(splitMD[1])-1]
 

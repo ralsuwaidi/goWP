@@ -313,10 +313,17 @@ func main() {
 				// add '.json' to the url
 				// replace wp.story with updated story
 				url = strings.Replace(bList[inputInt-1], "?", ".json?", 1)
+				fmt.Println(url)
 				commentsByt := GetResponse(url, "Golang_Spider_Bot/3.05")
 				wp.story = getComments(commentsByt)[0].Data.Children[0].Data.Selftext
+				if len(wp.story) < 50 {
+					comments := getComments(commentsByt)[1].Data.Children
+					wp.story = comments[0].Data.Body
+				}
 				splitStory := strings.Split(wp.story, "\n\n")
 				loopStory(splitStory)
+				urlList = urlList[:0]
+				m = nil
 			}
 		} else {
 			break
